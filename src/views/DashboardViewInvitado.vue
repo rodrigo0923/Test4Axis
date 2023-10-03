@@ -75,17 +75,36 @@
 <script>
 import { getAuth } from "firebase/auth";
 import axios from "axios";
+import { collection, getDocs, addDoc } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAkYQvEXXNWw6WSudXOybc3YNZ11ONTb9g",
+  authDomain: "vuejstest-942bd.firebaseapp.com",
+  databaseURL: "https://vuejstest-942bd-default-rtdb.firebaseio.com",
+  projectId: "vuejstest-942bd",
+  storageBucket: "vuejstest-942bd.appspot.com",
+  messagingSenderId: "758017724877",
+  appId: "1:758017724877:web:f9763fd719bc3ea29b7484",
+  measurementId: "G-B8HXGSFBYQ",
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const auth = getAuth();
 
 export default {
   data() {
     return {
+      rol: "User",
+      Movimientos: [],
       fecha: "",
+      fechaactual: "",
       cantidad: 0,
       conversion: 0,
+      valoractual: "",
       email: auth.currentUser.email,
       monedas: {},
-      valoractual: "",
     };
   },
   methods: {
@@ -97,6 +116,37 @@ export default {
           this.$router.push("/");
         })
         .catch((error) => console.log(error));
+    },
+    async getTodos() {
+      let TodoslosDatos = [];
+      const querySnapshot = await getDocs(collection(db, "Movimientos"));
+      querySnapshot.forEach((doc) => {
+        console.log(doc.id, "=>", doc.data());
+        const todo = {
+          id: doc.id,
+          User: doc.data().User,
+          ValorMoneda: doc.data().ValorMoneda,
+          FechaConversion: doc.data().FechaConversion,
+          MontoConversion: doc.data().MontoConversion,
+          FechaInicial: doc.data().FechaInicial,
+          Montoorigen: doc.data().Montoorigen,
+        };
+        TodoslosDatos.push(todo);
+        console.log(TodoslosDatos);
+      });
+      this.Movimientos = TodoslosDatos;
+      console.log("Array Movimientos", this.Movimientos);
+    },
+
+    async añadirRegistro() {
+      await addDoc(collection(db, "Movimientos"), {
+        User: this.rol,
+        ValorMoneda: this.valoractual,
+        Montoorigen: this.cantidad,
+        FechaConversion: this.fecha,
+        MontoConversion: this.conversion,
+        FechaInicial: this.fechaactual,
+      });
     },
 
     async traerindicadores() {
@@ -112,14 +162,27 @@ export default {
           this.valoractual = response.data.serie[0].valor;
           this.fecha = response.data.serie[0].fecha;
           this.convertirmoneda();
+          this.añadirRegistro();
+          this.clearall();
+          this.getTodos();
         });
     },
     convertirmoneda() {
-      this.cantidadnueva = Math.ceil(this.cantidad);
-      console.log(this.cantidadnueva);
-      this.conversion = this.cantidadnueva * this.valoractual;
+      this.conversion = this.cantidad * this.valoractual;
+      this.conversion = Math.ceil(this.conversion);
       console.log(this.conversion);
     },
+    getfechaactual() {
+      this.fechaactual = new Date().toLocaleDateString();
+    },
+    clearall() {
+      this.cantidad = "";
+      this.conversion = "";
+    },
+  },
+  mounted() {
+    this.getTodos();
+    this.getfechaactual();
   },
 };
 </script>

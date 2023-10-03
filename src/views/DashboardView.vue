@@ -5,13 +5,22 @@
       <div>
         <h1 class="text-center">Conversor de Moneda</h1>
         <div class="row">
-          <div class="col-sm-6">
+          <div class="col-sm-5">
             <label for="actual"> </label>
             <select name="" id="" class="form-control">
               <option value="UF">UF</option>
             </select>
           </div>
-          <div class="col-sm-6">
+          <div class="col-sm-2">
+            <label for="actual"> </label>
+            <label
+              class="text-center"
+              style="margin-top: 30px; margin-left: 50px"
+            >
+              a
+            </label>
+          </div>
+          <div class="col-sm-5">
             <label for="actual"> </label>
             <select name="" id="" class="form-control">
               <option value="Clp">CLP</option>
@@ -19,7 +28,7 @@
           </div>
         </div>
         <div class="row">
-          <div class="col-sm-12">
+          <div class="col-sm-12 text-center" style="margin-top: 10px">
             <h2>Ingrese Cantidad</h2>
             <input
               type="text"
@@ -29,9 +38,11 @@
             />
           </div>
         </div>
-        <div class="row">
-          <div class="col-md-12">
+        <div class="row text-center" style="margin-top: -20px">
+          <h2>Ingrese Fecha de Cambio</h2>
+          <div class="col-md-12 text-center" style="margin-top: 20px">
             <input
+              required
               class="text-center"
               type="date"
               v-model="fecha"
@@ -39,7 +50,7 @@
             />
           </div>
         </div>
-        <div class="row">
+        <div class="row" style="margin-top: 35px">
           <div class="col-md-6">
             <h3>Fecha Conversión: {{ this.fecha }}</h3>
           </div>
@@ -49,7 +60,7 @@
         </div>
         <div class="row mt-5">
           <div class="col-md-12 text-center">
-            <input v-model="conversion" />
+            <input :readonly="conversion" v-model="conversion" />
           </div>
         </div>
         <div class="row mt-5">
@@ -65,77 +76,123 @@
             <table class="table">
               <thead>
                 <tr>
+                  <th scope="col">Fecha Conversión</th>
+                  <th scope="col">Fecha Inicial(actual)</th>
+                  <th scope="col">Monto Conversión CLP</th>
+                  <th scope="col">Monto Origen UF</th>
                   <th scope="col">User</th>
-                  <th scope="col">Fecha</th>
-                  <th scope="col">Fecha Seleccionada</th>
-                  <th scope="col">Monto Conversión</th>
-                  <th scope="col">Monto Origen</th>
                   <th scope="col">Valor Moneda</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="name in info" :key="name.User">
+                <tr v-for="name in Movimientos" :key="name.User">
+                  <td>{{ name.FechaConversion }}</td>
+                  <td>{{ name.FechaInicial }}</td>
+                  <td>{{ name.MontoConversion }}</td>
+                  <td>{{ name.Montoorigen }}</td>
                   <td>{{ name.User }}</td>
-                  <td>{{ name.Fecha }}</td>
-                  <td>{{ name.Fecha }}</td>
-                  <td>{{ name.montoconversion }}</td>
-                  <td>{{ name.montoorigen }}</td>
-                  <td>{{ name.valormoneda }}</td>
+                  <td>{{ name.ValorMoneda }}</td>
                 </tr>
               </tbody>
             </table>
-            <button>Exportar Excel</button>
+            <button
+              class="btn btn-secondary"
+              v-on:click="descargarexcel('xlsx')"
+            >
+              Exportar Excel
+            </button>
           </div>
         </div>
       </div>
     </div>
-    <div id="username_display" class="display-8 mt-4 text-center">
-      {{ this.email }}
-    </div>
-    <div id="rol" class="display-8 text-center">Rol: <text>Admin</text></div>
+    <footer>
+      <div id="username_display" class="display-8 mt-4 text-center">
+        {{ this.email }}
+      </div>
+      <div id="rol" class="display-8 text-center">Rol: <text>Admin</text></div>
 
-    <button id="sign_out" class="mt-4 btn btn-danger" @click="signOut">
-      Logout
-    </button>
+      <button id="sign_out" class="mt-4 btn btn-danger" @click="signOut">
+        Logout
+      </button>
+    </footer>
   </div>
 </template>
 
 <script>
 import { getAuth } from "firebase/auth";
 import axios from "axios";
+import { collection, getDocs, addDoc } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+import XLSX from "xlsx";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyAkYQvEXXNWw6WSudXOybc3YNZ11ONTb9g",
+  authDomain: "vuejstest-942bd.firebaseapp.com",
+  databaseURL: "https://vuejstest-942bd-default-rtdb.firebaseio.com",
+  projectId: "vuejstest-942bd",
+  storageBucket: "vuejstest-942bd.appspot.com",
+  messagingSenderId: "758017724877",
+  appId: "1:758017724877:web:f9763fd719bc3ea29b7484",
+  measurementId: "G-B8HXGSFBYQ",
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const auth = getAuth();
 
 export default {
   data() {
     return {
-      info: [
-        {
-          User: "Admin",
-          Fecha: "29-07-2023",
-          montoconversion: "120390",
-          valormoneda: "36.785",
-          hora: "13:26",
-          montoorigen: "4",
-        },
-        {
-          User: "Admin",
-          Fecha: "15-06-2022",
-          montoconversion: "36785",
-          valormoneda: "36.785",
-          hora: "12:26",
-          montoorigen: "1",
-        },
-      ],
+      rol: "admin",
+      Movimientos: [],
       fecha: "",
+      fechaactual: "",
       cantidad: 0,
       conversion: 0,
+      valoractual: "",
       email: auth.currentUser.email,
       monedas: {},
-      valoractual: "",
     };
   },
   methods: {
+    async getTodos() {
+      let TodoslosDatos = [];
+      const querySnapshot = await getDocs(collection(db, "Movimientos"));
+      querySnapshot.forEach((doc) => {
+        console.log(doc.id, "=>", doc.data());
+        const todo = {
+          id: doc.id,
+          User: doc.data().User,
+          ValorMoneda: doc.data().ValorMoneda,
+          FechaConversion: doc.data().FechaConversion,
+          MontoConversion: doc.data().MontoConversion,
+          FechaInicial: doc.data().FechaInicial,
+          Montoorigen: doc.data().Montoorigen,
+        };
+        TodoslosDatos.push(todo);
+        console.log(TodoslosDatos);
+      });
+      this.Movimientos = TodoslosDatos;
+      console.log("Array Movimientos", this.Movimientos);
+    },
+
+    async añadirRegistro() {
+      await addDoc(collection(db, "Movimientos"), {
+        User: this.rol,
+        ValorMoneda: this.valoractual,
+        Montoorigen: this.cantidad,
+        FechaConversion: this.fecha,
+        MontoConversion: this.conversion,
+        FechaInicial: this.fechaactual,
+      });
+    },
+    descargarexcel() {
+      let data = XLSX.utils.json_to_sheet(this.Movimientos);
+      const workbook = XLSX.utils.book_new();
+      const filename = "Reporte-Conversión";
+      XLSX.utils.book_append_sheet(workbook, data, filename);
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+    },
     signOut() {
       auth
         .signOut()
@@ -146,13 +203,6 @@ export default {
         .catch((error) => console.log(error));
     },
 
-    addData() {
-      this.cars.push({
-        model: this.addModel,
-        year: this.addYear,
-      });
-      (this.addModel = ""), (this.addYear = "");
-    },
     async traerindicadores() {
       let fechanueva = this.fecha.split("-").reverse().join("-");
       console.log(fechanueva);
@@ -166,14 +216,27 @@ export default {
           this.valoractual = response.data.serie[0].valor;
           this.fecha = response.data.serie[0].fecha;
           this.convertirmoneda();
+          this.añadirRegistro();
+          this.clearall();
+          this.getTodos();
         });
     },
     convertirmoneda() {
-      this.cantidadnueva = Math.ceil(this.cantidad);
-      console.log(this.cantidadnueva);
-      this.conversion = this.cantidadnueva * this.valoractual;
+      this.conversion = this.cantidad * this.valoractual;
+      this.conversion = Math.ceil(this.conversion);
       console.log(this.conversion);
     },
+    getfechaactual() {
+      this.fechaactual = new Date().toLocaleDateString();
+    },
+    clearall() {
+      this.cantidad = "";
+      this.conversion = "";
+    },
+  },
+  mounted() {
+    this.getTodos();
+    this.getfechaactual();
   },
 };
 </script>
@@ -181,7 +244,7 @@ export default {
 .container {
   position: absolute;
   width: 900px;
-  height: 900px;
-  margin-top: 260px;
+  height: 1400px;
+  margin-top: 480px;
 }
 </style>

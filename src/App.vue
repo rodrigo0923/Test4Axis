@@ -32,9 +32,9 @@
 
 .background {
   width: 100vw;
-  height: 100vh;
+  height: 300vh;
   position: absolute;
-  background: rgb(250, 250, 250);
+  background: rgb(29, 187, 174);
 }
 
 .navbar {
